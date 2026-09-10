@@ -1,0 +1,22 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":automergePatch",
+    ":automergeMinor",
+    ":automergePr"
+  ],
+  "dockerfile": {
+    "managerFilePatterns": [
+      "/(^|/)images/[^/]+/Dockerfile$/"
+    ]
+  },
+  "packageRules": [
+    {
+      "description": "These images exist only to repackage upstream releases; a base bump is the whole point of the repo, so let majors through too.",
+      "matchDatasources": ["docker"],
+      "matchUpdateTypes": ["major"],
+      "automerge": true
+    }
+  ]
+}

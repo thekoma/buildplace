@@ -1,0 +1,148 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - images/**
+      - .github/workflows/build.yaml
+  workflow_dispatch:
+    inputs:
+      image:
+        description: 'Single image to build (directory name under images/). Empty = all.'
+        required: false
+        default: ''
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: zot.zot.svc.cluster.local:5000
+
+jobs:
+  # Which images to build. On push, only the ones whose directory changed;
+  # on dispatch, the one asked for, or all. Emits a JSON array consumed as a
+  # matrix, plus a flag so we can skip the build job entirely when it is empty
+  # (an empty matrix is a workflow error, not a no-op).
+  discover:
+    runs-on: buildplace
+    outputs:
+      images: ${{ steps.pick.outputs.images }}
+      any: ${{ steps.pick.outputs.any }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - id: pick
+        run: |
+          set -euo pipefail
+
+          all() { find images -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort; }
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            req='${{ inputs.image }}'
+            if [ -n "$req" ]; then
+              if [ ! -f "images/$req/Dockerfile" ]; then
+                echo "::error::no images/$req/Dockerfile" >&2
+                exit 1
+              fi
+              picked="$req"
+            else
+              picked="$(all)"
+            fi
+          else
+            before='${{ github.event.before }}'
+            # Zero SHA (first push / new branch) or an object we no longer have
+            # after a force-push: fall back to building everything rather than
+            # silently building nothing.
+            if [ "$before" = "0000000000000000000000000000000000000000" ] \
+               || ! git cat-file -e "$before^{commit}" 2>/dev/null; then
+              picked="$(all)"
+            else
+              changed="$(git diff --name-only "$before" "${{ github.sha }}" -- images/ \
+                          | cut -d/ -f2 | sort -u || true)"
+              # A change to the workflow itself rebuilds everything: it defines
+              # how every image is built.
+              if git diff --name-only "$before" "${{ github.sha }}" \
+                   -- .github/workflows/build.yaml | grep -q .; then
+                picked="$(all)"
+              else
+                picked="$changed"
+              fi
+            fi
+          fi
+
+          # Drop directories that were deleted in this push.
+          kept=''
+          for i in $picked; do
+            [ -f "images/$i/Dockerfile" ] && kept="$kept$i"$'\n'
+          done
+          kept="$(printf '%s' "$kept" | sed '/^$/d' || true)"
+
+          if [ -z "$kept" ]; then
+            echo "images=[]" >> "$GITHUB_OUTPUT"
+            echo "any=false" >> "$GITHUB_OUTPUT"
+            echo "nothing to build" >&2
+            exit 0
+          fi
+
+          json="$(printf '%s\n' "$kept" | jq -R . | jq -sc .)"
+          echo "images=$json" >> "$GITHUB_OUTPUT"
+          echo "any=true" >> "$GITHUB_OUTPUT"
+          echo "building: $json" >&2
+
+  build:
+    needs: discover
+    if: needs.discover.outputs.any == 'true'
+    runs-on: buildplace
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJSON(needs.discover.outputs.images) }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # Per-image overrides, all optional. Defaults are amd64 + :latest.
+      - id: cfg
+        run: |
+          set -euo pipefail
+          PLATFORMS=linux/amd64
+          TAGS=latest
+          env_file="images/${{ matrix.image }}/build.env"
+          if [ -f "$env_file" ]; then
+            # shellcheck disable=SC1090
+            . "$env_file"
+          fi
+          refs=''
+          for t in $(printf '%s' "$TAGS" | tr ',' ' '); do
+            refs="${refs}${REGISTRY}/${{ matrix.image }}:${t}"$'\n'
+          done
+          {
+            echo "platforms=$PLATFORMS"
+            echo 'tags<<EOF'
+            printf '%s' "$refs"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      # The runner has no local Docker daemon on purpose (no dind, no
+      # privileged sidecar). Builds go to the shared rootless BuildKit.
+      - uses: docker/setup-buildx-action@v4
+        with:
+          driver: remote
+          endpoint: tcp://buildkit.arc-system.svc.cluster.local:1234
+
+      # No login step: the ARC runner template mounts the zot credential from
+      # Vault at DOCKER_CONFIG, and build-push-action forwards it to BuildKit.
+      - uses: docker/build-push-action@v7
+        with:
+          context: images/${{ matrix.image }}
+          platforms: ${{ steps.cfg.outputs.platforms }}
+          push: true
+          tags: ${{ steps.cfg.outputs.tags }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ matrix.image }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ matrix.image }}:buildcache,mode=max
+          labels: |
+            org.opencontainers.image.source=https://github.com/thekoma/buildplace
+            org.opencontainers.image.revision=${{ github.sha }}
