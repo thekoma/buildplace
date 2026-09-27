@@ -11,6 +11,16 @@
       "/(^|/)images/[^/]+/Dockerfile$/"
     ]
   },
+  "customManagers": [
+    {
+      "description": "Non-docker upstreams pinned as `# renovate:` comment + ARG VERSION in a Dockerfile (e.g. npm packages repackaged into an image).",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)images/[^/]+/Dockerfile$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\nARG VERSION=(?<currentValue>\\S+)"
+      ]
+    }
+  ],
   "packageRules": [
     {
       "description": "These images exist only to repackage upstream releases; a base bump is the whole point of the repo, so let majors through too.",
