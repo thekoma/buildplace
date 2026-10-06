@@ -3,7 +3,7 @@
 # the gog binary dropped in, so the MCP server can be exposed over HTTP to the
 # gateway.
 
-FROM ghcr.io/openclaw/gogcli:v0.39.1 AS gog
+FROM ghcr.io/openclaw/gogcli:v0.43.0 AS gog
 
 FROM ghcr.io/sparfenyuk/mcp-proxy:v0.12.0
 COPY --from=gog /usr/local/bin/gog /usr/local/bin/gog
