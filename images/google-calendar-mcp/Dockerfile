@@ -5,7 +5,7 @@
 # renovate: datasource=npm depName=@cocal/google-calendar-mcp
 ARG VERSION=2.7.0
 
-FROM node:22-slim AS build
+FROM node:24-slim AS build
 ARG VERSION
 WORKDIR /app
 RUN npm install --omit=dev --no-audit --no-fund "@cocal/google-calendar-mcp@${VERSION}"
