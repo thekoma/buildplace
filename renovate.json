@@ -19,6 +19,14 @@
       "matchStrings": [
         "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\nARG VERSION=(?<currentValue>\\S+)"
       ]
+    },
+    {
+      "description": "Upstreams built from source at a pinned commit: `# renovate: datasource=git-refs depName=<repo url> currentValue=<branch>` + ARG COMMIT=<sha>. Renovate moves the sha when the branch head moves.",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)images/[^/]+/Dockerfile$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>git-refs) depName=(?<depName>\\S+) currentValue=(?<currentValue>\\S+)\\nARG COMMIT=(?<currentDigest>[0-9a-f]{40})"
+      ]
     }
   ],
   "packageRules": [
@@ -26,6 +34,12 @@
       "description": "These images exist only to repackage upstream releases; a base bump is the whole point of the repo, so let majors through too.",
       "matchDatasources": ["docker"],
       "matchUpdateTypes": ["major"],
+      "automerge": true
+    },
+    {
+      "description": "Same reasoning for upstreams built from a pinned commit: following the branch head is how these images stay current.",
+      "matchDatasources": ["git-refs"],
+      "matchUpdateTypes": ["digest"],
       "automerge": true
     }
   ]
