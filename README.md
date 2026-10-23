@@ -68,3 +68,14 @@ until they are. Not needed yet, so not set up.
 
 `renovate.json` tracks the pinned `FROM` tags in every `images/*/Dockerfile`.
 Pin them: an unpinned base defeats the point of building the image at all.
+
+Upstreams that are not images are pinned the same way, with a `# renovate:`
+comment on the line above the pin:
+
+| pin | upstream | example |
+|---|---|---|
+| `ARG VERSION=<release>` | a published package (npm, …) | `google-calendar-mcp` |
+| `ARG COMMIT=<sha>` | a branch built from source (`datasource=git-refs`) | `excalidraw-room`, `excalidraw-mcp` |
+
+A source build follows the branch head: every upstream commit is an automerged
+PR here and a new image, tagged with the short sha.
