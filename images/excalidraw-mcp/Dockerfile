@@ -13,7 +13,7 @@
 # renovate: datasource=git-refs depName=https://github.com/excalidraw/excalidraw-mcp currentValue=main
 ARG COMMIT=157aa23ceb1976008aadc89eb05e3444060f09d6
 
-FROM node:24-slim AS build
+FROM node:26-slim AS build
 ARG COMMIT
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 # BuildKit fetches the exact commit itself: no git in the image.

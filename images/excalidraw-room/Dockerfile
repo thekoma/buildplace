@@ -7,7 +7,7 @@
 # renovate: datasource=git-refs depName=https://github.com/excalidraw/excalidraw-room currentValue=master
 ARG COMMIT=03ff435860b508d7cd9e005cfc90f7977ae2a593
 
-FROM node:24-slim AS build
+FROM node:26-slim AS build
 ARG COMMIT
 # BuildKit fetches the exact commit itself: no git in the image.
 ADD https://github.com/excalidraw/excalidraw-room.git#${COMMIT} /src
