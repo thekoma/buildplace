@@ -3,7 +3,7 @@
 # distroless Node runtime: no shell, no package manager, no source of ours.
 
 # renovate: datasource=npm depName=@cocal/google-calendar-mcp
-ARG VERSION=2.7.0
+ARG VERSION=2.8.0
 
 FROM node:26-slim AS build
 ARG VERSION
