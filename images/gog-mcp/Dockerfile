@@ -5,5 +5,5 @@
 
 FROM ghcr.io/openclaw/gogcli:v0.47.1 AS gog
 
-FROM ghcr.io/sparfenyuk/mcp-proxy:v0.13.3
+FROM ghcr.io/sparfenyuk/mcp-proxy:v0.14.0
 COPY --from=gog /usr/local/bin/gog /usr/local/bin/gog
