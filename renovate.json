@@ -41,6 +41,12 @@
       "matchDatasources": ["git-refs"],
       "matchUpdateTypes": ["digest"],
       "automerge": true
+    },
+    {
+      "description": "obico-ml-api-intel copies upstream's ml_api/Dockerfile.intel, whose onnxruntime-openvino wheel is pinned for python:3.12. The base moves when upstream moves it (the Dockerfile hash check fails the build), not on its own.",
+      "matchFileNames": ["images/obico-ml-api-intel/Dockerfile"],
+      "matchDatasources": ["docker"],
+      "enabled": false
     }
   ]
 }
