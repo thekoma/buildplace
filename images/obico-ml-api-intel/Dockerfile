@@ -13,7 +13,7 @@
 # silently: copy the new steps here and update DOCKERFILE_SHA256.
 
 # renovate: datasource=git-refs depName=https://github.com/TheSpaghettiDetective/obico-server currentValue=release
-ARG COMMIT=da0a2fe268b2e5e29711803d79dbe75765f243f1
+ARG COMMIT=c2ce21df47f5cdb6ba56436f674304554252ab43
 ARG DOCKERFILE_SHA256=111c708a9a6ee87223a88f09054c59cdaabaceb4038fd72bbf05277decc9d03d
 
 FROM python:3.12-slim AS src
